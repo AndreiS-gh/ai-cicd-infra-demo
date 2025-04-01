@@ -1,5 +1,11 @@
+terraform {
+  backend "gcs" {
+    bucket  = "tfstate-cicd-bucket"
+    prefix  = "terraform/ai-cicd-infra-demo/state"
+  }
+}
+
 provider "google" {
-  credentials = file("gcp-key.json")  # This will be set up in CI/CD
   project     = var.project_id
   region      = var.region
 }

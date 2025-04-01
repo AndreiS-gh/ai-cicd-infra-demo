@@ -1,0 +1,67 @@
+name: GCP Terraform Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: Deploy GCP Infra
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.3
+
+      - name: Authenticate with GCP
+        run: |
+          # Ensure the directory exists
+          mkdir -p /home/runner/gcp
+
+          # Write the credentials to the correct file
+          echo '${{ secrets.GCP_CREDENTIALS }}' > /home/runner/gcp/gcp-key.json
+
+          # Debugging step: List files in /home/runner/gcp
+          ls -l /home/runner/gcp
+
+          # Authenticate with Google Cloud
+          gcloud auth activate-service-account --key-file=/home/runner/gcp/gcp-key.json
+          gcloud config set project $(jq -r .project_id /home/runner/gcp/gcp-key.json)
+          echo "GCP Authentication Completed" # Add this logging
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp/gcp-key.json
+
+      - name: Terraform Init
+        run: |
+          cd gcp/infra
+          terraform init
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp/gcp-key.json
+
+      - name: Terraform Plan
+        run: |
+          cd gcp/infra
+          terraform plan -var-file=terraform.tfvars.json 2>&1 | tee terraform_plan.log # Capture output
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp/gcp-key.json
+
+      - name: Terraform Apply
+        run: |
+          cd gcp/infra
+          terraform apply -var-file=terraform.tfvars.json -auto-approve 2>&1 | tee terraform_apply.log # Capture output
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp/gcp-key.json
+
+      - name: Upload Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-logs
+          path: |
+            gcp/infra/terraform_plan.log
+            gcp/infra/terraform_apply.log
