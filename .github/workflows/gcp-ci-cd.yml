@@ -37,6 +37,13 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp/gcp-key.json
 
+      - name: Build and Push Docker Image
+        run: |
+          cd gcp/webapp
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/simple-webapp .
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp/gcp-key.json          
+
       - name: Terraform Init
         run: |
           cd gcp/infra
@@ -65,3 +72,20 @@ jobs:
           path: |
             gcp/infra/terraform_plan.log
             gcp/infra/terraform_apply.log
+
+      - name: Get Cloud Run URL
+        id: get_url
+        run: |
+          cd gcp/infra
+          APP_URL=$(terraform output -raw app_url)
+          echo "APP_URL=$APP_URL" >> $GITHUB_ENV
+          echo $APP_URL
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/gcp/gcp-key.json            
+
+      - name: AI Powered Web Test
+        run: |
+          # Add AI web testing here.
+          echo "Testing the URL from terraform output: $APP_URL"
+        env:
+          APP_URL: ${{ env.APP_URL }}          

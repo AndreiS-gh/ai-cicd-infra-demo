@@ -15,3 +15,41 @@ resource "google_storage_bucket" "demo_bucket" {
   location      = var.region
   force_destroy = true
 }
+
+
+resource "google_cloud_run_service" "default" {
+  name     = "simple-webapp"
+  location = var.region
+
+  template {
+    spec {
+      containers {
+        image = "gcr.io/${var.project_id}/simple-webapp"
+      }
+    }
+  }
+
+  traffic {
+    latest_revision = true
+    percent         = 100
+  }
+}
+
+resource "google_cloud_run_service_iam_policy" "noauth" {
+  location = google_cloud_run_service.default.location
+  project  = google_cloud_run_service.default.project
+  service  = google_cloud_run_service.default.name
+
+  policy_data = <<POLICY
+{
+  "bindings": [
+    {
+      "members": [
+        "allUsers"
+      ],
+      "role": "roles/run.invoker"
+    }
+  ]
+}
+POLICY
+}
