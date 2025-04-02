@@ -1,0 +1,26 @@
+# Start from the official Playwright image (Ubuntu Jammy)
+FROM mcr.microsoft.com/playwright:v1.43.0-jammy
+
+# Set environment variables to avoid interaction during installs
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install jq, terraform, and any other tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        gnupg \
+        unzip \
+        jq \
+        software-properties-common && \
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+        > /etc/apt/sources.list.d/hashicorp.list && \
+    apt-get update && \
+    apt-get install -y terraform && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Optionally: Add a working directory
+WORKDIR /app
+
+# Default command (you can override this in your GitHub Actions workflow)
+CMD ["bash"]

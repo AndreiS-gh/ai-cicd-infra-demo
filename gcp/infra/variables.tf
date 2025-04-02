@@ -13,3 +13,9 @@ variable "bucket_name" {
   description = "Name of the GCS bucket"
   type        = string
 }
+
+
+variable "text_to_test" {
+  description = "Text to test the site for"
+  type        = string
+}
