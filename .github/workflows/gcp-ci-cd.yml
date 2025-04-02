@@ -10,11 +10,12 @@ jobs:
     name: Deploy GCP Infra
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.43.0-jammy
+      image: mcr.microsoft.com/playwright:v1.51.1-jammy
 
     steps:
       - name: Install dependencies
         run: |
+          
           apt-get update && apt-get install -y \
             jq \
             curl \
@@ -53,7 +54,6 @@ jobs:
         run: |
           cd gcp/infra
           terraform apply -var-file=terraform.tfvars.json -auto-approve 2>&1 | tee terraform_apply.log
-
       - name: Upload Logs
         uses: actions/upload-artifact@v4
         with:
@@ -66,20 +66,43 @@ jobs:
         id: get_outputs
         run: |
           cd gcp/infra
-          APP_URL=$(terraform output -raw app_url)
-          TEXT_TO_TEST=$(terraform output -raw text_to_test)
-          APP_URL=$(terraform output -raw app_url)
-          echo "APP_URL=$APP_URL" >> $GITHUB_ENV
-          echo $APP_URL
-          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
-          echo $S3_BUCKET
-          echo "TEXT_TO_TEST=$TEXT_TO_TEST" >> $GITHUB_ENV
-          echo $S3_BUCKET          
+          echo "APP_URL=$(terraform output -raw app_url)" >> $GITHUB_ENV
+          echo "TEXT_TO_TEST=$(terraform output -raw text_to_test)" >> $GITHUB_ENV
+          echo "S3_BUCKET=$(terraform output -raw gcs_bucket_name)" >> $GITHUB_ENV        
 
-      - name: AI Powered Web Test
+      - name: Run AI-Powered Web Test
         run: |
-          echo "Testing the URL from terraform output: $APP_URL"
+          cd testing/webapp
+          echo "Installing Node.js and dependencies"
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+
+          echo "Installing dependencies"
+          npm install
+
+          echo "Generating Playwright test with OpenAI"
+          TEST_URL="$APP_URL" OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_test.js
+
+          echo "Running generated Playwright test"
+          TEST_URL="$APP_URL" TEXT_TO_TEST="$TEXT_TO_TEST" npx playwright test ai_generated_test.spec.js
         env:
           APP_URL: ${{ env.APP_URL }}
           TEXT_TO_TEST: ${{ env.TEXT_TO_TEST }}
-          S3_BUCKET: ${{ env.S3_BUCKET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload Screenshot to GCS
+        run: |
+          cd testing/webapp
+          GCS_BUCKET_NAME="${{ env.S3_BUCKET }}" node upload_screenshot.js
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+          GCS_BUCKET_NAME: ${{ env.S3_BUCKET }}
+
+      - name: Send Email with Screenshot
+        run: |
+          cd testing/webapp
+          node send_email.js
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}

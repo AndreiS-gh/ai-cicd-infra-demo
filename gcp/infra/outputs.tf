@@ -2,7 +2,7 @@ output "app_url" {
   value = google_cloud_run_service.default.status[0].url
 }
 
-output "s3_bucket" {
+output "gcs_bucket_name" {
   value = var.bucket_name
 }
 
