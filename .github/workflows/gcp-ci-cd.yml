@@ -179,3 +179,4 @@ jobs:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           TEST_STATUS: ${{ env.TEST_STATUS }}
           TEST_SCRIPT_GCS_URL: ${{ env.TEST_SCRIPT_GCS_URL }}
+          APP_URL: ${{ env.APP_URL }}

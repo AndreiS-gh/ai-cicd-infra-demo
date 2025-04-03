@@ -9,6 +9,7 @@ const FROM_EMAIL = process.env.EMAIL_FROM || "no-reply@example.com";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const TEST_SCRIPT_GCS_URL = process.env.TEST_SCRIPT_GCS_URL;
 const TEST_STATUS = process.env.TEST_STATUS || "unknown";
+const APP_URL = process.env.APP_URL;
 
 if (!SENDGRID_API_KEY || !TO_EMAIL) {
   console.error("❌ Missing SENDGRID_API_KEY or EMAIL_TO env variables");
@@ -33,10 +34,16 @@ if (!screenshotFile) {
 
 const attachment = fs.readFileSync(screenshotFile).toString("base64");
 
-let textBody = `🧪 The latest AI-generated web test run was **${TEST_STATUS}**.\n\n📸 Screenshot is attached.`;
+let textBody = `🧪 The latest AI-generated web test run was **${TEST_STATUS.toUpperCase()}**.\n\n`;
+
+if (APP_URL) {
+  textBody += `🌐 App URL: ${APP_URL}\n\n`;
+}
+
+textBody += `📸 Screenshot is attached.\n\n`;
 
 if (TEST_SCRIPT_GCS_URL) {
-  textBody += `\n\n📄 AI-Generated Test Script:\n${TEST_SCRIPT_GCS_URL}\n(Note: Requires Google authentication to view.)`;
+  textBody += `📄 AI-Generated Test Script:\n<${TEST_SCRIPT_GCS_URL}>\n(Note: Requires Google authentication to view.)`;
 }
 
 const msg = {
