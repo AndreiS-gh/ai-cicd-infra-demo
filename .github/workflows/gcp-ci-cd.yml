@@ -111,7 +111,7 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Upload Logs
         if: steps.tf_action.outputs.action == 'apply'
         uses: actions/upload-artifact@v4
@@ -131,6 +131,7 @@ jobs:
           echo "S3_BUCKET=$(terraform output -raw gcs_bucket_name)" >> $GITHUB_ENV
 
       - name: Run AI-Powered Web Test
+        if: steps.tf_action.outputs.action == 'apply'
         run: |
           cd automation/js
 
@@ -148,6 +149,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Upload AI-Generated Test Script to GCS
+        if: steps.tf_action.outputs.action == 'apply'
         id: upload_test_script
         run: |
           cd automation/js
