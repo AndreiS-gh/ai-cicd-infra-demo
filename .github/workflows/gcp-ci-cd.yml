@@ -92,24 +92,22 @@ jobs:
           git config --global user.name "ci-bot-ai"
           git config --global user.email "ci-bot-ai@demo-ai.com"
           git config --global --add safe.directory $GITHUB_WORKSPACE
-            
+
+          # Pull and rebase before any local changes
+          git pull --rebase origin ${GITHUB_REF#refs/heads/} || true
+
           # Stage all .md files including untracked ones
           git add *.md
-            
+
           # Check if there's anything to commit
           if git diff --cached --quiet; then
             echo "🟢 No doc changes to commit."
           else
             git commit -m "📝 Auto-generated Terraform docs [skip ci]"
-            
-            # Pull and rebase to avoid rejected push
-            git pull --rebase origin ${GITHUB_REF#refs/heads/} || true
-            
             git push origin HEAD:${GITHUB_REF#refs/heads/}
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
 
       - name: Upload Logs
         if: steps.tf_action.outputs.action == 'apply'
