@@ -1,83 +1,68 @@
-# Terraform Configuration for AI-CICD Infrastructure Demo
+# Terraform GCP Infrastructure for AI CI/CD Demo
 
-This Terraform configuration sets up a basic infrastructure on Google Cloud Platform (GCP) to demonstrate continuous integration and continuous deployment (CI/CD) capabilities for an AI-based web application. Key components include a Google Cloud Storage bucket and a serverless web application deployed on Google Cloud Run. The setup allows for auto-scaling and easy deployments without server management.
+This repository contains Terraform configuration files to set up a simple infrastructure on Google Cloud Platform (GCP), specifically tailored for a continuous integration and delivery (CI/CD) demo of an AI project. The infrastructure includes a Cloud Storage bucket and a Cloud Run service to host a web application.
 
-## Table of Contents
+## Infrastructure Overview
 
-- [Overview](#overview)
-- [Infrastructure Components](#infrastructure-components)
-- [Configuration Variables](#configuration-variables)
-- [Outputs](#outputs)
-- [Usage](#usage)
+1. **Google Cloud Storage Bucket**: 
+   - A GCS bucket is created to potentially store artifacts or application data needed for the web application.
 
-## Overview
+2. **Google Cloud Run Service**:
+   - This service deploys a containerized web application (`simple-webapp`) using Cloud Run, which is a fully managed serverless platform. The app can be accessed by anyone on the internet due to the IAM policy allowing `allUsers` to invoke the service.
 
-This configuration files contain definitions for deploying:
+## Key Configuration Files
 
-- A Google Cloud Storage (GCS) bucket for storing state files and other resources.
-- A Google Cloud Run service that hosts a simple web application.
-- IAM policy for the Cloud Run service to allow public access.
+### `main.tf`
+- **Provider Configuration**: Sets the Google Cloud provider with the specified project ID and region.
+  
+- **Resources**:
+  - `google_storage_bucket`: Creates a GCS bucket with a given name and location.
+  - `google_cloud_run_service`: Deploys a containerized application, pointing to an image hosted in Google Container Registry.
+  - `google_cloud_run_service_iam_policy`: Grants public access to the Cloud Run service, allowing anyone to invoke it without authentication.
 
-## Infrastructure Components
+### `variables.tf`
+Defines the input variables used to configure the infrastructure:
 
-### Google Cloud Storage Bucket
+- `project_id`: The GCP Project ID where resources will be created.
+- `region`: Specifies the region for deploying resources. Default is `us-central1`.
+- `bucket_name`: The name of the Google Cloud Storage bucket to be created.
+- `text_to_test`: Arbitrary text intended for testing purposes, perhaps for testing the deployed application.
 
-- **Purpose:** Used primarily as a backend to store Terraform state files and can be leveraged to store other resources or outputs related to CI/CD pipeline processes.
-- **Key Property:**
-  - `force_destroy = true`: Ensures that the bucket and its contents are removed when destroying the infrastructure.
+### `outputs.tf`
+Defines outputs after the infrastructure is provisioned:
 
-### Google Cloud Run Service
+- `app_url`: URL of the deployed Cloud Run application.
+- `gcs_bucket_name`: Returns the name of the created GCS bucket.
+- `text_to_test`: Outputs the text provided for testing.
 
-- **Purpose:** Deploys a containerized version of a simple web application. Provides an auto-scaling mechanism to handle web traffic efficiently.
-- **Key Properties:**
-  - `image`: Docker image location for the web application stored in Google Container Registry. Substitute `${var.project_id}` with your GCP Project ID.
-  - `traffic`: Directs 100% of user requests to the latest revision automatically.
+## Backend Configuration
 
-### IAM Policy for Cloud Run
+The Terraform state backend is configured to use Google Cloud Storage, enabling persistent storage of Terraform state files:
 
-- **Purpose:** Grants permission for all users to invoke the Cloud Run service.
-- **Policy Details:** 
-  - Assigns `roles/run.invoker` role to `allUsers`, making the service accessible over the public internet.
-
-## Configuration Variables
-
-Defined in `variables.tf`, these are parameters that can be customized per deployment:
-
-- **`project_id`**: (string) Your GCP Project ID. This is a mandatory field.
-- **`region`**: (string) The geographical region for deploying resources. Default is `us-central1`.
-- **`bucket_name`**: (string) The name for the GCS bucket used in the deployment.
-- **`text_to_test`**: (string) An arbitrary variable you can use to test the site or customize configurations.
-
-## Outputs
-
-Defined in `outputs.tf`, these outputs provide useful information post-deployment:
-
-- **`app_url`**: The URL of the deployed Cloud Run service. This is the endpoint for the web application.
-- **`gcs_bucket_name`**: The name of the GCS bucket used, useful for verification and reference.
-- **`text_to_test`**: Reflects back your input for `text_to_test` for confirmation or validation purposes.
+- **Bucket**: `tfstate-cicd-bucket`
+- **Prefix**: `terraform/ai-cicd-infra-demo/state`
 
 ## Usage
 
-To deploy this infrastructure configuration, follow these steps:
+1. **Pre-requisites**: Ensure Terraform is installed and you have authenticated to Google Cloud.
 
-1. **Initialize Terraform**:
+2. **Initialize Terraform**:
    ```bash
    terraform init
    ```
-   This initializes the working directory with respective plugins corresponding to GCP.
 
-2. **Plan the Deployment**:
+3. **Plan the Deployment**:
    ```bash
-   terraform plan
+   terraform plan -var="project_id=your-gcp-project-id" -var="bucket_name=your-gcs-bucket-name"
    ```
-   This will show a preview of the infrastructure changes Terraform will make.
+   Replace placeholders with appropriate values, especially `your-gcp-project-id` and `your-gcs-bucket-name`.
 
-3. **Apply the Deployment**:
+4. **Apply the Configuration**:
    ```bash
-   terraform apply
+   terraform apply -var="project_id=your-gcp-project-id" -var="bucket_name=your-gcs-bucket-name"
    ```
-   This will create or manage the infrastructure as per the configurations.
 
-4. After deployment, access your web application using the URL provided in the `app_url` output.
+5. **Access the Outputs**:
+   Once deployed, access the outputs (like the `app_url`) to interact with your deployed services.
 
-Remember to ensure proper IAM permissions and billing enabled in your GCP account for resource creation. This Terraform setup is optimized for demonstration and educational purposes, and might need additional configurations for production-grade implementations.
+This setup provides a straightforward and scalable method to deploy a serverless containerized application along with essential storage resources, aimed at supporting AI-driven continuous integration/delivery workflows on GCP.
