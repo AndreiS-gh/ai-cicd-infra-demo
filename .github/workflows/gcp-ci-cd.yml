@@ -90,31 +90,27 @@ jobs:
           echo "S3_BUCKET=$(terraform output -raw gcs_bucket_name)" >> $GITHUB_ENV
 
       - name: Run AI-Powered Web Test
-        id: run_test
         run: |
           cd testing/webapp
           echo "Installing Node.js and dependencies"
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
-
+          
           echo "Installing dependencies"
           npm install
-
+          
           echo "Generating Playwright test with OpenAI"
           TEST_URL="$APP_URL" OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_test.js
-
+          
           echo "Running generated Playwright test"
-          if TEST_URL="$APP_URL" TEXT_TO_TEST="$TEXT_TO_TEST" npx playwright test ai_generated_test.spec.js; then
-            echo "TEST_STATUS=successful" >> $GITHUB_ENV
-          else
-            echo "TEST_STATUS=failed" >> $GITHUB_ENV
-          fi
+          TEST_URL="$APP_URL" TEXT_TO_TEST="$TEXT_TO_TEST" npx playwright test ai_generated_test.spec.js | tee test-output.log
+          
+          RESULT=$(grep -o 'TEST_RESULT=.*' test-output.log | cut -d '=' -f2)
+          echo "TEST_STATUS=${RESULT:-failed}" >> $GITHUB_ENV
         env:
           APP_URL: ${{ env.APP_URL }}
           TEXT_TO_TEST: ${{ env.TEXT_TO_TEST }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-
 
       - name: Upload AI-Generated Test Script to GCS
         id: upload_test_script
