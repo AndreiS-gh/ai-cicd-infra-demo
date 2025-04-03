@@ -93,13 +93,11 @@ jobs:
           git config --global user.email "ci-bot-ai@demo-ai.com"
           git config --global --add safe.directory $GITHUB_WORKSPACE
 
-          # Pull and rebase before any local changes
-          git pull --rebase origin ${GITHUB_REF#refs/heads/} || true
+          # Pull and rebase before committing
+          git pull --rebase --autostash origin ${GITHUB_REF#refs/heads/} || true
 
-          # Stage all .md files including untracked ones
+          # Stage and commit if there are changes
           git add *.md
-
-          # Check if there's anything to commit
           if git diff --cached --quiet; then
             echo "🟢 No doc changes to commit."
           else
