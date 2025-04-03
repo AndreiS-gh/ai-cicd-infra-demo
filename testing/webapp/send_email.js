@@ -1,13 +1,13 @@
 import fs from "fs";
-import path from "path";
 import sgMail from "@sendgrid/mail";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const TO_EMAIL = process.env.EMAIL_TO;
-const FROM_EMAIL = process.env.EMAIL_FROM || 'no-reply@example.com';
+const FROM_EMAIL = process.env.EMAIL_FROM || "no-reply@example.com";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const TEST_SCRIPT_GCS_URL = process.env.TEST_SCRIPT_GCS_URL; // Authenticated link
 
 if (!SENDGRID_API_KEY || !TO_EMAIL) {
   console.error("❌ Missing SENDGRID_API_KEY or EMAIL_TO env variables");
@@ -21,7 +21,7 @@ const screenshotDir = ".";
 const filePrefix = "homepage-";
 const files = fs.readdirSync(screenshotDir);
 const screenshotFile = files
-  .filter(name => name.startsWith(filePrefix) && name.endsWith(".png"))
+  .filter((name) => name.startsWith(filePrefix) && name.endsWith(".png"))
   .sort()
   .reverse()[0];
 
@@ -32,11 +32,17 @@ if (!screenshotFile) {
 
 const attachment = fs.readFileSync(screenshotFile).toString("base64");
 
+let textBody = "✅ The latest AI-generated web test ran successfully.\n\n📸 Screenshot is attached.";
+
+if (TEST_SCRIPT_GCS_URL) {
+  textBody += `\n\n📄 AI-Generated Test Script:\n${TEST_SCRIPT_GCS_URL}\n(Note: Requires Google authentication to view.)`;
+}
+
 const msg = {
   to: TO_EMAIL,
   from: FROM_EMAIL,
-  subject: "✅ AI Web Test Screenshot",
-  text: "The latest AI-generated web test ran successfully. Screenshot attached.",
+  subject: "✅ AI Web Test Results + Screenshot",
+  text: textBody,
   attachments: [
     {
       content: attachment,

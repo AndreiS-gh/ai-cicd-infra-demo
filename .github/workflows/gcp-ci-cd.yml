@@ -103,6 +103,17 @@ jobs:
           TEXT_TO_TEST: ${{ env.TEXT_TO_TEST }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
+      - name: Upload AI-Generated Test Script to GCS
+        id: upload_test_script
+        run: |
+          cd testing/webapp
+          TEST_SCRIPT_GCS_URL=$(node upload_test_script.js | grep TEST_SCRIPT_GCS_URL | cut -d '=' -f2-)
+          echo "TEST_SCRIPT_GCS_URL=$TEST_SCRIPT_GCS_URL" >> $GITHUB_ENV
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+          GCS_BUCKET_NAME: ${{ env.S3_BUCKET }}
+     
+
       - name: Upload Screenshot to GCS
         if: steps.tf_action.outputs.action == 'apply'
         run: |
@@ -113,7 +124,6 @@ jobs:
           GCS_BUCKET_NAME: ${{ env.S3_BUCKET }}
 
       - name: Send Email with Screenshot
-        if: steps.tf_action.outputs.action == 'apply'
         run: |
           cd testing/webapp
           node send_email.js
@@ -121,3 +131,4 @@ jobs:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          TEST_SCRIPT_GCS_URL: ${{ env.TEST_SCRIPT_GCS_URL }}
