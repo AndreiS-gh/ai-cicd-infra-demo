@@ -90,18 +90,31 @@ jobs:
           echo "S3_BUCKET=$(terraform output -raw gcs_bucket_name)" >> $GITHUB_ENV
 
       - name: Run AI-Powered Web Test
-        if: steps.tf_action.outputs.action == 'apply'
+        id: run_test
         run: |
           cd testing/webapp
+          echo "Installing Node.js and dependencies"
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
+
+          echo "Installing dependencies"
           npm install
+
+          echo "Generating Playwright test with OpenAI"
           TEST_URL="$APP_URL" OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_test.js
-          TEST_URL="$APP_URL" TEXT_TO_TEST="$TEXT_TO_TEST" npx playwright test ai_generated_test.spec.js
+
+          echo "Running generated Playwright test"
+          if TEST_URL="$APP_URL" TEXT_TO_TEST="$TEXT_TO_TEST" npx playwright test ai_generated_test.spec.js; then
+            echo "TEST_STATUS=successful" >> $GITHUB_ENV
+          else
+            echo "TEST_STATUS=failed" >> $GITHUB_ENV
+          fi
         env:
           APP_URL: ${{ env.APP_URL }}
           TEXT_TO_TEST: ${{ env.TEXT_TO_TEST }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+
 
       - name: Upload AI-Generated Test Script to GCS
         id: upload_test_script
@@ -123,7 +136,8 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
           GCS_BUCKET_NAME: ${{ env.S3_BUCKET }}
 
-      - name: Send Email with Screenshot
+      - name: Send Email with Screenshot and Link
+        if: steps.tf_action.outputs.action == 'apply'
         run: |
           cd testing/webapp
           node send_email.js
@@ -131,4 +145,5 @@ jobs:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          TEST_STATUS: ${{ env.TEST_STATUS }}
           TEST_SCRIPT_GCS_URL: ${{ env.TEST_SCRIPT_GCS_URL }}

@@ -1,6 +1,5 @@
 import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
-import path from 'path';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -28,11 +27,11 @@ async function uploadTestScript() {
       },
     });
 
-    const gcsUrl = `gs://${BUCKET_NAME}/${destination}`;
-    console.log(`✅ Uploaded test script to ${gcsUrl}`);
-    
-    // Export GCS URL for GitHub Actions
-    console.log(`TEST_SCRIPT_GCS_URL=${gcsUrl}`);
+    const publicUrl = `https://storage.cloud.google.com/${BUCKET_NAME}/${destination}`;
+    console.log(`✅ Uploaded test script to ${publicUrl}`);
+
+    // ✅ Output public URL in GitHub Actions format
+    console.log(`TEST_SCRIPT_GCS_URL=${publicUrl}`);
   } catch (err) {
     console.error('❌ Upload failed:', err.message);
     process.exit(1);
