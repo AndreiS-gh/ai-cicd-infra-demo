@@ -15,7 +15,6 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          
           apt-get update && apt-get install -y \
             jq \
             curl \
@@ -71,11 +70,41 @@ jobs:
           cd gcp/infra
           terraform apply -var-file=terraform.tfvars.json -auto-approve 2>&1 | tee terraform_apply.log
 
+      - name: Install JS dependencies for automation
+        if: steps.tf_action.outputs.action == 'apply'
+        run: |
+          cd automation/js
+          echo "Installing Node.js and dependencies"
+          npm install
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+
       - name: Generate Terraform Docs with GPT
         if: steps.tf_action.outputs.action == 'apply'
         run: |
-          cd automation
-          TF_DIR=../gcp/infra OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_tf_docs.js
+          cd automation/js
+          TF_DIR=../../gcp/infra OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_tf_docs.js
+
+      - name: Commit Generated Terraform Docs
+        if: steps.tf_action.outputs.action == 'apply'
+        run: |
+          cd gcp/infra
+          git config --global user.name "ci-bot-ai"
+          git config --global user.email "ci-bot-ai@demo-ai.com"
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+          # Stage all .md files including untracked ones
+          git add *.md
+
+          # Check if there's anything to commit
+          if git diff --cached --quiet; then
+            echo "🟢 No doc changes to commit."
+          else
+            git commit -m "📝 Auto-generated Terraform docs [skip ci]"
+            git push origin HEAD:${GITHUB_REF#refs/heads/}
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Logs
         if: steps.tf_action.outputs.action == 'apply'
@@ -97,14 +126,8 @@ jobs:
 
       - name: Run AI-Powered Web Test
         run: |
-          cd testing/webapp
-          echo "Installing Node.js and dependencies"
-          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-          apt-get install -y nodejs
-          
-          echo "Installing dependencies"
-          npm install
-          
+          cd automation/js
+
           echo "Generating Playwright test with OpenAI"
           TEST_URL="$APP_URL" OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_test.js
           
@@ -121,18 +144,17 @@ jobs:
       - name: Upload AI-Generated Test Script to GCS
         id: upload_test_script
         run: |
-          cd testing/webapp
+          cd automation/js
           TEST_SCRIPT_GCS_URL=$(node upload_test_script.js | grep TEST_SCRIPT_GCS_URL | cut -d '=' -f2-)
           echo "TEST_SCRIPT_GCS_URL=$TEST_SCRIPT_GCS_URL" >> $GITHUB_ENV
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
           GCS_BUCKET_NAME: ${{ env.S3_BUCKET }}
-     
 
       - name: Upload Screenshot to GCS
         if: steps.tf_action.outputs.action == 'apply'
         run: |
-          cd testing/webapp
+          cd automation/js
           GCS_BUCKET_NAME="${{ env.S3_BUCKET }}" node upload_screenshot.js
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
@@ -141,7 +163,7 @@ jobs:
       - name: Send Email with Screenshot and Link
         if: steps.tf_action.outputs.action == 'apply'
         run: |
-          cd testing/webapp
+          cd automation/js
           node send_email.js
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
