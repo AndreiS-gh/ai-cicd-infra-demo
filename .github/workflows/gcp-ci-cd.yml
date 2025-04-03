@@ -85,28 +85,33 @@ jobs:
           cd automation/js
           TF_DIR=../../gcp/infra OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_tf_docs.js
 
-      - name: Commit Generated Terraform Docs
+      - name: Generate Project README
         if: steps.tf_action.outputs.action == 'apply'
         run: |
-          cd gcp/infra
+          cd automation/js
+          node generate_project_readme.js
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Commit Generated Docs
+        if: steps.tf_action.outputs.action == 'apply'
+        run: |
           git config --global user.name "ci-bot-ai"
           git config --global user.email "ci-bot-ai@demo-ai.com"
           git config --global --add safe.directory $GITHUB_WORKSPACE
-
-          # Pull and rebase before committing
-          git pull --rebase --autostash origin ${GITHUB_REF#refs/heads/} || true
-
-          # Stage and commit if there are changes
-          git add *.md
+          # Stage docs in gcp/infra and README in root
+          git add gcp/infra/*.md README.md
+          # Check if anything changed
           if git diff --cached --quiet; then
             echo "🟢 No doc changes to commit."
           else
-            git commit -m "📝 Auto-generated Terraform docs [skip ci]"
+            git commit -m "📝 Auto-generated Terraform docs & project README [skip ci]"
+            git pull --rebase origin ${GITHUB_REF#refs/heads/} || true
             git push origin HEAD:${GITHUB_REF#refs/heads/}
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
       - name: Upload Logs
         if: steps.tf_action.outputs.action == 'apply'
         uses: actions/upload-artifact@v4
