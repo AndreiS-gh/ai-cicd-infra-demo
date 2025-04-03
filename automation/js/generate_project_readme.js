@@ -7,16 +7,19 @@ import crypto from 'crypto';
 dotenv.config();
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const WORKFLOW_PATH = '.github/workflows/gcp-ci-cd.yml';
-const INFRA_PATH = 'gcp/infra';
-const SCRIPTS_PATH = 'automation/js';
-const README_PATH = 'README.md';
+
+const ROOT_DIR = path.resolve(process.cwd(), '../../'); // two levels up from automation/js
+const WORKFLOW_PATH = path.join(ROOT_DIR, '.github/workflows/gcp-ci-cd.yml');
+const INFRA_PATH = path.join(ROOT_DIR, 'gcp/infra');
+const SCRIPTS_PATH = path.join(ROOT_DIR, 'automation/js');
+const README_PATH = path.join(ROOT_DIR, 'README.md');
 
 function hash(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
 function readAllFilesInDir(dir, exts = []) {
+  if (!fs.existsSync(dir)) return '';
   const files = fs.readdirSync(dir);
   return files
     .filter((f) => exts.length === 0 || exts.includes(path.extname(f)))
