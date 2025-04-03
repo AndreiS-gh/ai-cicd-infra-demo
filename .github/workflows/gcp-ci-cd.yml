@@ -71,6 +71,12 @@ jobs:
           cd gcp/infra
           terraform apply -var-file=terraform.tfvars.json -auto-approve 2>&1 | tee terraform_apply.log
 
+      - name: Generate Terraform Docs with GPT
+        if: steps.tf_action.outputs.action == 'apply'
+        run: |
+          cd automation
+          TF_DIR=../gcp/infra OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_tf_docs.js
+
       - name: Upload Logs
         if: steps.tf_action.outputs.action == 'apply'
         uses: actions/upload-artifact@v4
