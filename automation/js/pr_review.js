@@ -1,10 +1,8 @@
-import fs from "fs";
-import { OpenAI } from "openai";
-import * as core from "@actions/core";
-import * as github from "@actions/github";
-import dotenv from "dotenv";
-
-dotenv.config();
+const fs = require("fs");
+const { OpenAI } = require("openai");
+const core = require("@actions/core");
+const github = require("@actions/github");
+require("dotenv").config();
 
 const DIFF_PATH = "diff.patch";
 
