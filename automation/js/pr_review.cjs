@@ -1,34 +1,16 @@
 const fs = require("fs");
-const { execSync } = require("child_process");
 const { OpenAI } = require("openai");
-const github = require("@actions/github");
 require("dotenv").config();
 
-const DIFF_PATH = "diff.patch";
 const MAX_BYTES = 30000;
+const DIFF_PATH = "diff.patch";
 
-function getFilteredDiff() {
-  try {
-    const rawDiff = execSync("git diff origin/main...HEAD --name-only").toString();
-    const files = rawDiff
-      .split("\n")
-      .filter((f) =>
-        /\.(js|cjs|yml|yaml|tf)$/.test(f.trim())
-      );
-
-    if (files.length === 0) return "";
-
-    const filteredDiff = execSync(`git diff origin/main...HEAD -- ${files.join(" ")}`).toString();
-    return filteredDiff;
-  } catch (err) {
-    console.error("❌ Failed to generate filtered diff:", err.message);
-    return "";
-  }
+let diff = "";
+if (fs.existsSync(DIFF_PATH)) {
+  diff = fs.readFileSync(DIFF_PATH, "utf-8").trim();
 }
 
-let diff = getFilteredDiff().trim();
-
-if (!diff) {
+if (!diff || diff.startsWith("🟢")) {
   console.log("🟢 No relevant file changes to review.");
   process.exit(0);
 }
@@ -44,7 +26,7 @@ const openai = new OpenAI({
 
 const prompt = `
 You are a senior developer reviewing a GitHub pull request.
-Here is the diff between main and the PR for relevant files (.js, .cjs, .tf, .yml):
+Here is the diff between main and the PR for relevant files (.js, .cjs, .tf, .yml, .tfvars.json):
 
 ${diff}
 
@@ -53,11 +35,6 @@ Only output the review comment. Keep it under 300 words.
 `;
 
 async function run() {
-  const token = process.env.GITHUB_TOKEN;
-  const octokit = github.getOctokit(token);
-  const { owner, repo } = github.context.repo;
-  const pull_number = github.context.payload.pull_request.number;
-
   let review = "";
 
   try {
@@ -65,14 +42,26 @@ async function run() {
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
     });
-
     review = response.choices[0].message.content.trim();
   } catch (err) {
     console.warn("⚠️ OpenAI failed, falling back to generic message:", err.message);
     review = "_AI review temporarily unavailable. Please proceed with manual checks._";
   }
 
+  const isGitHubActions = process.env.GITHUB_ACTIONS === "true";
+  const token = process.env.GITHUB_TOKEN;
+
+  if (!isGitHubActions || !token) {
+    console.log("💬 AI Review Output:\n\n" + review);
+    return;
+  }
+
+  const github = require("@actions/github");
   try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    const pull_number = github.context.payload.pull_request.number;
+
     await octokit.rest.issues.createComment({
       owner,
       repo,
