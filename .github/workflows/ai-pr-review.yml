@@ -1,0 +1,37 @@
+name: GPT Review of Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  gpt-review:
+    name: Review PR with GPT
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd automation/js
+          npm install
+
+      - name: Generate diff.patch
+        run: |
+          git fetch origin main
+          git diff origin/main...HEAD > automation/js/diff.patch || echo "" > automation/js/diff.patch
+
+      - name: Run GPT Code Reviewer
+        run: |
+          cd automation/js
+          node pr_review.js
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
