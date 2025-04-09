@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # to allow diffing against main
+          fetch-depth: 0  # Ensure we can diff against main
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,9 +25,24 @@ jobs:
           cd automation/js
           npm install
 
-      - name: Generate diff.patch
+      - name: Generate filtered diff
         run: |
-          git diff origin/main...HEAD > automation/js/diff.patch || echo "" > automation/js/diff.patch
+          git fetch origin main:refs/remotes/origin/main
+
+          echo "🔍 Changed files:"
+          git diff origin/main...HEAD --name-only | tee changed_files.txt
+
+          echo "📄 Filtered files:"
+          grep -E '\.(js|cjs|yml|yaml|tf|tfvars\.json)$' changed_files.txt | tee filtered_files.txt
+
+          if [ ! -s filtered_files.txt ]; then
+            echo "🟢 No relevant file changes to review." > automation/js/diff.patch
+          else
+            # Safely build filtered diff
+            while IFS= read -r file; do
+              git diff origin/main...HEAD -- "$file"
+            done < filtered_files.txt > automation/js/diff.patch
+          fi
 
       - name: Run GPT Code Reviewer
         run: |
