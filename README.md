@@ -1,39 +1,69 @@
-# Project Overview
+# Project README
 
-This project is a DevOps automation toolchain designed to streamline the deployment, management, and testing of infrastructure and applications on Google Cloud Platform (GCP). It leverages GitHub Actions to automate the deployment process using Terraform, perform AI-powered testing with Playwright, and manage documentation generation.
+## Project Summary
 
-## Purpose
+This internal project leverages GitHub Actions to facilitate a continuous integration and deployment (CI/CD) pipeline for infrastructure management and automated testing using Terraform and Node.js scripts. The pipeline includes automated GPT-based code reviews, Terraform-based GCP deployment, and AI-generated web tests. This setup enhances both the automation and intelligence of the CI/CD process, accommodating dynamically generated documentation and testing scripts using OpenAI's capabilities.
 
-The primary goal of this project is to automate the deployment of a simple web application on GCP Cloud Run and manage related infrastructure components such as Google Cloud Storage (GCS) buckets. It also automates the generation of documentation and testing scripts using AI, enhancing workflow efficiency.
+## Tools and Technologies Used
 
-## Technologies Used
+- **GitHub Actions**: For configuring and executing CI/CD workflows.
+- **Terraform**: To define and deploy infrastructure as code on Google Cloud Platform (GCP).
+- **Node.js**: For running automation scripts and enabling dynamic code execution.
+- **OpenAI GPT**: For generating documentation and analyzing code changes.
+- **Google Cloud Platform (GCP)**: Serving as the infrastructure provider for the deployment.
+- **SendGrid**: For email notifications post-deployment.
+- **Playwright**: To perform AI-generated web tests.
 
-- **Terraform:** To define and provision infrastructure resources on GCP.
-- **GitHub Actions:** To handle continuous integration and continuous deployment (CI/CD) workflows, including Terraform execution and end-to-end testing.
-- **JavaScript with Node.js:** For running automation scripts and handling AI interactions.
-- **OpenAI API:** To generate documentation and test scripts dynamically.
-- **Playwright:** For AI-generated web tests of the deployed application.
-- **GCP Services:** Including Cloud Run for application hosting, Google Cloud Storage for state management and artifact storage, and SendGrid for sending notifications.
+## Workflows Description
 
-## High-Level Workflow
+1. **GPT Review of Pull Request**: This workflow is triggered on pull requests to review code changes using GPT. It filters relevant files, generates a diff, and executes the review process, posting results back to the PR.
 
-1. **Triggered on Push:** The CI/CD pipeline is triggered by pushes to the main branch, initiating the deployment workflow.
+2. **Demo Workflow**: This basic workflow is triggered when changes are pushed to the `automation/js` directory and simply echoes a message to demonstrate functionality.
 
-2. **Environment Setup:** The pipeline configures necessary tools and authenticates with GCP using credentials stored in GitHub Secrets.
+3. **GCP Terraform Deployment**: This workflow runs upon pushes to the `main` branch. It handles the deployment of infrastructure on GCP using Terraform, generates documentation, executes AI-powered web tests, uploads results to Google Cloud Storage (GCS), and sends notifications via email.
 
-3. **Infrastructure Deployment:**
-   - Terraform is used to initialize, plan, and apply infrastructure changes based on the Terraform configuration files, creating a GCS bucket and deploying a Cloud Run service hosting a simple web application.
-   
-4. **Documentation and Test Generation:**
-   - AI is used to generate detailed documentation (README and Terraform docs) and a web test script for the deployed application.
-   - The generated test script validates the application's homepage by checking for specific text and takes screenshots.
+## Pipeline Explanation
 
-5. **Execution and Reporting:**
-   - The web test is executed using Playwright, and results are logged.
-   - Generated logs and screenshots are uploaded to GCS as artifacts.
-   - Test outcomes are communicated via email using SendGrid, including links to the test script and application and attaching screenshots.
+The pipeline runs various workflows, each targeting a specific aspect of development and deployment processes:
 
-6. **Version Control and Updates:**
-   - If documentation changes are detected post-generation, they're committed back to the repository, maintaining up-to-date records in the version control system.
+- On pull requests, the **GPT Review of Pull Request** automates code review by analyzing changes in relevant files and leveraging OpenAI GPT to provide feedback, ensuring consistent and quality code integration.
 
-This holistic approach ensures infrastructure is correctly deployed and tested, with comprehensive, up-to-date documentation generated automatically for users and developers.
+- Pushes to the primary infrastructure definitions trigger the **GCP Terraform Deployment**. This workflow authenticates with GCP, sets up Terraform, and executes either `apply` or `destroy` actions based on specified configurations. It deploys or tears down infrastructure components like Google Cloud Run services and storage buckets.
+
+- The workflow integrates with OpenAI to generate Terraform documentation and dynamically creates README content. AI-generated Playwright tests validate deployments, with results and artifacts (like screenshots) being uploaded to GCS for further inspection.
+
+## Usage Instructions
+
+### Triggering the Pipeline
+
+- **Pull Request**: Create or update a pull request to trigger the GPT-based code review. Ensure that file changes include those with extensions like `.js`, `.yml`, `.yaml`, `.tf`, or `.tfvars.json`.
+
+- **Push to Main**: Push commits to the `main` branch to initiate Terraform workflows and deployments on GCP.
+
+### Required Secrets
+
+- `OPENAI_API_KEY`: API key for authentication with OpenAI.
+- `GITHUB_TOKEN`: Token for accessing GitHub API functionalities during workflows.
+- `GCP_CREDENTIALS`: JSON credentials for GCP account access.
+- `SENDGRID_API_KEY`: API key to send emails via SendGrid.
+- `EMAIL_TO`: Recipient email address for notifications.
+- `EMAIL_FROM`: Sender email address for email notifications.
+
+### Pull Request Workflow
+
+Upon a pull request, the workflow:
+- Reviews code changes using OpenAI GPT.
+- Posts feedback as a comment on the PR.
+
+### Push to Main Workflow
+
+On a push to the main branch:
+- Authenticate with GCP and set up Terraform.
+- Read actions from `terraform.tfvars.json` to decide between `apply` or `destroy`.
+- Deploy infrastructure using Terraform, followed by doc generation and Playwright web tests.
+- Upload test results to GCS and send summary emails using SendGrid.
+
+### Important Notes
+
+- Ensure all necessary secrets are configured correctly in the GitHub repository's settings for seamless execution of workflows.
+- The DevOps team should frequently review and update the workflow configurations to adapt to new requirements and improve efficiency.

@@ -1,66 +1,68 @@
-# Terraform Google Cloud Platform Infrastructure
+# Terraform GCP Infrastructure for Cloud Run Service
 
-This repository contains Terraform configuration files to deploy a simple demonstration infrastructure on Google Cloud Platform (GCP). The setup includes a Cloud Run service running a simple web application, and a Google Cloud Storage (GCS) bucket. This infrastructure can be useful for experimenting with Google Cloud services or testing CI/CD pipelines.
+## Overview
+
+This Terraform configuration is designed to deploy a simple application infrastructure on Google Cloud Platform (GCP), leveraging Cloud Run for serverless application hosting. The solution includes provisioning a Google Cloud Storage (GCS) bucket and deploying a Docker container to Cloud Run. Additionally, it configures public access to the Cloud Run service. The infrastructure is suitable for demo purposes and provides a ready-to-use environment for deploying simple web applications.
 
 ## Infrastructure Components
 
-The infrastructure consists of the following components:
+- **Google Cloud Storage (GCS) Bucket**
+  - A GCS bucket is created to store files with the name specified in `bucket_name`.
 
-1. **Google Cloud Storage Bucket**:
-   - A GCS bucket is provisioned with a name specified by the user.
-   - It is configured to allow for destruction when running `terraform destroy`.
+- **Google Cloud Run Service**
+  - A Cloud Run service is created to host a containerized application. The service pulls a Docker image from Google Container Registry (GCR), specified in the variable `project_id` and imaginery tagged as `simple-webapp`.
 
-2. **Google Cloud Run Service**:
-   - A simple web application is deployed as a Cloud Run service.
-   - The container image is sourced from the Google Container Registry (GCR).
-   - The service is publicly accessible to all users with no authentication required.
-
-3. **IAM Policy for Cloud Run**:
-   - IAM policy is applied to allow all users to invoke the Cloud Run service, making it public.
-
-4. **Null Resource for Demo Purposes**:
-   - A `null_resource` is included as an example resource that simply echoes a message to demonstrate resource creation.
+- **IAM Policy for Cloud Run**
+  - Cloud Run service is configured to allow public access. All users are granted the `roles/run.invoker` role to allow unauthenticated invocations.
 
 ## Key Variables
 
-- **project_id**: *(Required)* The ID of the GCP project where resources will be deployed.
-- **region**: The region where resources will be deployed. Defaults to `us-central1`.
-- **bucket_name**: *(Required)* The name of the GCS bucket to be created.
-- **text_to_test**: Arbitrary text intended for testing the deployed web application.
+- **`project_id`**: 
+  - **Description**: GCP Project ID where the resources will be deployed.
+  - **Type**: `string`
+
+- **`region`**: 
+  - **Description**: The GCP region where the resources will be deployed.
+  - **Type**: `string`
+  - **Default**: `us-central1`
+
+- **`bucket_name`**: 
+  - **Description**: The name of the Google Cloud Storage bucket to be created.
+  - **Type**: `string`
+
+- **`text_to_test`**: 
+  - **Description**: A placeholder for demo purposes. This can be used for testing purposes, such as verifying content or operational workflows in a demo setting.
+  - **Type**: `string`
 
 ## Outputs
 
-- **app_url**: The URL where the deployed Cloud Run application is accessible.
-- **gcs_bucket_name**: The name of the created GCS bucket.
-- **text_to_test**: The test text specified in the variables, confirming the setup.
+- **`app_url`**: 
+  - **Description**: The URL of the deployed Cloud Run service. This is the endpoint where the application can be accessed publicly.
 
-## Usage
+- **`gcs_bucket_name`**: 
+  - **Description**: The name of the Google Cloud Storage bucket created by the configuration.
 
-1. **Pre-requisites**:
-   - Ensure you have Terraform installed.
-   - Have GCP credentials configured, and your project ID is available.
+- **`text_to_test`**: 
+  - **Description**: The user-defined text intended for demonstration or testing purposes.
 
-2. **Deploying the Infrastructure**:
-   ```bash
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+## Modules and Provisioners
 
-3. **Accessing the Application**:
-   - Once deployed, check the output (`app_url`) for the URL to access the Cloud Run service.
+- **Module: NA**
+  - No external Terraform modules are used in this configuration. Resources are explicitly defined within the provided `.tf` files.
 
-4. **Destroying the Infrastructure**:
-   ```bash
-   terraform destroy
-   ```
+- **Provisioner: `null_resource`**
+  - A `null_resource` is used to demonstrate provisioning with a local execution command, which will run `echo Demo resource created` upon the successful application of the Terraform configuration.
 
-## Backend Configuration
+## Configuration and Usage
 
-This configuration uses Google Cloud Storage (GCS) for storing Terraform state files. Ensure that the specified GCS bucket (`tfstate-cicd-bucket`) exists or adjust accordingly in the `main.tf`.
+1. **Set up GCP credentials**: Ensure that the Google Cloud SDK is installed and configured on your machine with the appropriate credentials.
 
-## Additional Notes
+2. **Initialize Terraform**: Run `terraform init` to initialize the backend configuration (`gcs` for storing Terraform state files in a Google Cloud Storage bucket).
 
-- Remember to create the necessary IAM roles and permissions in GCP for Terraform to deploy the resources successfully.
-- `local-exec` provisioner in `null_resource` is meant for demonstration and can be removed or adjusted based on real-world needs.
-- The infrastructure is suitable for development and testing purposes and should be considered for production usage with necessary modifications and security assessments.
+3. **Define Variables**: Create a `terraform.tfvars` file or specify variables directly within the command line for `project_id`, `bucket_name`, and any optional variables not covered by defaults.
+
+4. **Apply Configuration**: Run `terraform apply` to create the resources defined in the configuration files. Review changes and confirm to provision the infrastructure.
+
+5. **Access Outputs**: After the apply step, view the app's publicly accessible URL and other output values using `terraform output`.
+
+This setup provides a straightforward demonstration infrastructure on GCP utilizing Terraform's robust scripting capabilities to provision and manage cloud resources.
