@@ -71,7 +71,6 @@ jobs:
           terraform apply -var-file=terraform.tfvars.json -auto-approve 2>&1 | tee terraform_apply.log
 
       - name: Install JS dependencies for automation
-        if: steps.tf_action.outputs.action == 'apply'
         run: |
           cd automation/js
           echo "Installing Node.js and dependencies"
@@ -80,13 +79,11 @@ jobs:
           apt-get install -y nodejs
 
       - name: Generate Terraform Docs with GPT
-        if: steps.tf_action.outputs.action == 'apply'
         run: |
           cd automation/js
           TF_DIR=../../gcp/infra OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_tf_docs.js
 
       - name: Generate Project README
-        if: steps.tf_action.outputs.action == 'apply'
         run: |
           cd automation/js
           node generate_project_readme.js
@@ -94,7 +91,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Commit Generated Docs
-        if: steps.tf_action.outputs.action == 'apply'
         run: |
           git config --global user.name "ci-bot-ai"
           git config --global user.email "ci-bot-ai@demo-ai.com"

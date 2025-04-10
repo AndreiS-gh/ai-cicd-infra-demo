@@ -8,8 +8,8 @@ dotenv.config();
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const ROOT_DIR = path.resolve(process.cwd(), '../../'); // two levels up from automation/js
-const WORKFLOW_PATH = path.join(ROOT_DIR, '.github/workflows/gcp-ci-cd.yml');
+const ROOT_DIR = path.resolve(process.cwd(), '../../');
+const WORKFLOW_DIR = path.join(ROOT_DIR, '.github/workflows');
 const INFRA_PATH = path.join(ROOT_DIR, 'gcp/infra');
 const SCRIPTS_PATH = path.join(ROOT_DIR, 'automation/js');
 const README_PATH = path.join(ROOT_DIR, 'README.md');
@@ -28,17 +28,23 @@ function readAllFilesInDir(dir, exts = []) {
 }
 
 async function generateReadme() {
-  const workflowContent = fs.existsSync(WORKFLOW_PATH) ? fs.readFileSync(WORKFLOW_PATH, 'utf-8') : '';
+  const workflowContent = readAllFilesInDir(WORKFLOW_DIR, ['.yml', '.yaml']);
   const tfCode = readAllFilesInDir(INFRA_PATH, ['.tf']);
   const jsCode = readAllFilesInDir(SCRIPTS_PATH, ['.js']);
 
   const prompt = `
-You are an AI documentation assistant. Based on the following files from a GitHub repository, generate a short and concise README.md that explains what this project is, what it automates, what technologies it uses, and how it works at a high level.
+You are an AI documentation assistant. Based on the following files from a GitHub repository, generate a comprehensive and concise README.md that includes:
 
-Do not include install instructions or setup. Just describe purpose, tools used, and high-level logic.
+- A short project summary.
+- Tools and technologies used.
+- A list of workflows and what they do.
+- High-level explanation of how the pipeline works.
+- Clear usage instructions (how to trigger the pipeline, secrets needed, what happens on PRs, etc).
+
+Do not include install instructions. Assume this README is for internal DevOps users familiar with GitHub Actions and Terraform.
 
 Files:
-- GitHub Actions Workflow:
+- GitHub Actions Workflows:
 \`\`\`yaml
 ${workflowContent}
 \`\`\`
@@ -48,7 +54,7 @@ ${workflowContent}
 ${tfCode}
 \`\`\`
 
-- Automation Scripts (JavaScript):
+- Automation Scripts:
 \`\`\`js
 ${jsCode}
 \`\`\`
@@ -57,7 +63,7 @@ ${jsCode}
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
     messages: [
-      { role: 'system', content: 'You are a technical writer specializing in devops tooling.' },
+      { role: 'system', content: 'You are a technical writer specializing in DevOps and GitHub Actions.' },
       { role: 'user', content: prompt },
     ],
   });
