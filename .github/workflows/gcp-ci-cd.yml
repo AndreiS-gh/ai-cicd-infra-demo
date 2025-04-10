@@ -78,15 +78,10 @@ jobs:
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
 
-      - name: Generate Terraform Docs with GPT
+      - name: Generate All AI-Powered Docs
         run: |
           cd automation/js
-          TF_DIR=../../gcp/infra OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_tf_docs.js
-
-      - name: Generate Project README
-        run: |
-          cd automation/js
-          node generate_project_readme.js
+          OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" node generate_docs.js
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
