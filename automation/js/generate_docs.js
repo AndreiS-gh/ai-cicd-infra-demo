@@ -12,6 +12,7 @@ const WORKFLOW_DIR = path.join(ROOT_DIR, '.github/workflows');
 const INFRA_DIR = path.join(ROOT_DIR, 'gcp/infra');
 const SCRIPTS_DIR = path.join(ROOT_DIR, 'automation/js');
 const README_PATH = path.join(ROOT_DIR, 'README.md');
+const EXAMPLE_README_PATH = path.join(ROOT_DIR, 'automation/README.md');
 const TF_README_PATH = path.join(INFRA_DIR, 'AI_GENERATED_README.md');
 
 function hash(content) {
@@ -27,19 +28,29 @@ function readAllFilesInDir(dir, exts = []) {
     .join('\n\n');
 }
 
+function readFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    console.error(`File not found: ${filePath}`);
+    return '';
+  }
+  return fs.readFileSync(filePath, 'utf-8');
+}
+
 async function generateTerraformDocs() {
   const tfCode = readAllFilesInDir(INFRA_DIR, ['.tf']);
+  const exReadme = readFile(EXAMPLE_README_PATH);
   if (!tfCode) {
     console.warn('⚠️ No Terraform code found to document.');
     return '';
   }
 
   const prompt = `
-You are a DevOps documentation assistant. Based on the following Terraform configuration, generate Markdown documentation that:
+You are a DevOps documentation assistant. Based on the documentation in the example file ${exReadme} the Terraform Code provided, generate Markdown documentation that:
 - Explains the infrastructure purpose
 - Highlights variables, outputs, and modules used
 - Uses clear, developer-friendly wording
 - Intended for internal teams
+- Based on the resources created by this module create a short description for the module (maximum 100 words) and a name for the module (maximum 5 words) using the cloud provider as the first word.
 
 Terraform Code:
 \`\`\`hcl
